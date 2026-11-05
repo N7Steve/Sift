@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sift.Core/Sift.Core.csproj" />
+    <Project Path="src/Sift/Sift.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sift.Probe/Sift.Probe.csproj" />
+    <Project Path="tests/Sift.Tests/Sift.Tests.csproj" />
+  </Folder>
+</Solution>
