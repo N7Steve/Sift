@@ -19,3 +19,13 @@ FLAC: https://github.com/xiph/flac/releases/tag/1.5.0
 ## Tradeoffs
 
 A disk spool makes independent edge operations, recovery and exact concatenation simple and testable, at the cost of disk usage and deferred finalization. Source streams can differ in rate/channel count; a declared fixed Windows capture format avoids pretending to infer a single source-native format for a process tree. FLAC retains every captured PCM bit. A future float/native capture mode must define conversion semantics separately, not relabel float as lossless integer PCM.
+
+## MP3 and OGG export (0.2)
+
+`AudioOutput` validates format/bitrate and reads retained PCM intervals with 64-bit offsets and bounded buffers. MP3 uses NAudio's MediaFoundationEncoder stream overload, with CreateNew for output protection. Supported Windows bitrates are checked before capture so the selected CBR is never silently substituted. PCM24 -> normalized float -> PCM16 quantization applies exclusively to the lossy MP3 encoder; there is no resampling, gain adjustment or change to WAV/FLAC capture fidelity.
+
+OGG uses native Xiph libogg 1.3.5/libvorbis 1.3.7, OggVorbisSharp 1.0.1 (MIT ABI bindings), and vorbis_encode_init with nominal bitrate and unconstrained min/max. This is an average target, not strict CBR. Analysis/bitrate blocks are completely drained at EOS; granule positions carry the exact duration. Native states are cleared in finally blocks even if writing fails. PCM24 values are exactly representable as normalized float32 for Vorbis input. No managed candidate with failing bitrate/EOS tests is included.
+
+The native DLLs in tools/vorbis are built from the included unmodified official Xiph source archives using MSVC 19.44, Release x64, static CRT (/MT). PE imports were checked: only Kernel32 and the other bundled Xiph DLLs are required; users do not need a Visual C++ runtime install. Optional scripts/build-vorbis.ps1 reproduces the builds using VS 2022 C++ Build Tools/CMake. Normal .NET builds and CI use the bundled DLLs and do not require C++ tools. Native upstream sources emit existing numeric-conversion compiler warnings; Sift's managed Release build remains warning-free. Xiph BSD notices accompany the package. The libvorbis API's C long parameters are 32-bit on the supported Windows x64 ABI.
+
+References: https://xiph.org/vorbis/doc/vorbisenc/vorbis_encode_init.html , https://xiph.org/vorbis/doc/libvorbis/overview.html , https://naudio.github.io/NAudio/api/NAudio.Wave.MediaFoundationEncoder.html .

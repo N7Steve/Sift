@@ -6,6 +6,7 @@ public sealed record RecordingResult(string Path, long Frames);
 public sealed class Session : IAsyncDisposable
 {
     readonly Capture capture;
+    readonly int bitrateKbps;
     readonly Detector detector;
     readonly Options options;
     readonly string raw, format, stem;
@@ -32,7 +33,7 @@ public sealed class Session : IAsyncDisposable
         }
     }
     public Exception? Error => capture.Failure ?? (worker?.Exception?.GetBaseException());
-    Session(Capture c, Process p, Options o, string folder, string format)
+    Session(Capture c, Process p, Options o, string folder, string format, int bitrateKbps = 192)
     {
         capture = c;
         target = p;
@@ -40,16 +41,22 @@ public sealed class Session : IAsyncDisposable
         options = o;
         detector = new(o);
         this.format = format;
+        this.bitrateKbps = bitrateKbps;
         stem = Path.Combine(folder, $"Sift_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}_{Guid.NewGuid().ToString("N")[..6]}");
         raw = stem + ".sift-pcm";
     }
-    public static async Task<Session> Start(int pid, Options o, string folder, string format)
+    public static async Task<Session> Start(int pid, Options o, string folder, string format, int bitrateKbps = 192)
     {
         o.Validate();
         if (!Directory.Exists(folder))
             throw new DirectoryNotFoundException("La carpeta de destino no existe. Selecciona otra carpeta.");
-        if (format != "WAV" && format != "FLAC")
-            throw new ArgumentException("Formato desconocido.");
+        AudioOutput.Validate(format, bitrateKbps);
+        if (format == "OGG")
+            foreach (string dll in new[] { "ogg.dll", "vorbis.dll", "vorbisenc.dll" })
+                if (!File.Exists(Path.Combine(AppContext.BaseDirectory, dll)))
+                    throw new FileNotFoundException("Falta un componente OGG. Extrae el paquete portable completo.", dll);
+        if (format == "MP3")
+            AudioOutput.CheckMp3Support(bitrateKbps);
         if (format == "FLAC" && !File.Exists(Export.FlacPath))
             throw new FileNotFoundException("Falta el codificador FLAC. Ejecuta bootstrap.ps1.");
         var p = Process.GetProcessById(pid);
@@ -59,7 +66,7 @@ public sealed class Session : IAsyncDisposable
         try
         {
             c = await Capture.Open((uint)pid);
-            s = new(c, p, o, folder, format);
+            s = new(c, p, o, folder, format, bitrateKbps);
             file = new FileStream(s.raw, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 65536, FileOptions.SequentialScan);
             File.WriteAllText(s.raw + ".json", JsonSerializer.Serialize(new
             {
@@ -68,6 +75,7 @@ public sealed class Session : IAsyncDisposable
                 Channels = 2,
                 Options = o,
                 Format = format,
+                BitrateKbps = AudioOutput.IsLossy(format) ? bitrateKbps : (int?)null,
                 ProcessId = pid
             }));
             s.worker = Task.Run(async () => { using (file) { await foreach (var b in c.Packets.ReadAllAsync()) { file.Write(b); s.detector.Push(b); Interlocked.Exchange(ref s.estimatedFrames, s.detector.EstimatedSavedFrames); } file.Flush(true); } });
@@ -94,9 +102,15 @@ public sealed class Session : IAsyncDisposable
                 continue;
             string name = stem + (options.SeparateFiles ? $"_{++index:000}" : "");
             string wav = name + ".work.wav";
-            Export.WriteWave(raw, wav, group);
+            if (!AudioOutput.IsLossy(format))
+                Export.WriteWave(raw, wav, group);
             string output = name + "." + format.ToLowerInvariant();
-            if (format == "FLAC")
+            if (AudioOutput.IsLossy(format))
+            {
+                AudioOutput.Encode(raw, output + ".partial", group, format, bitrateKbps);
+                File.Move(output + ".partial", output);
+            }
+            else if (format == "FLAC")
             {
                 await Export.EncodeFlac(wav, output + ".partial");
                 File.Move(output + ".partial", output);

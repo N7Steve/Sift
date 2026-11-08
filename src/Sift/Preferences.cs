@@ -7,6 +7,7 @@ public sealed class Preferences
 {
     public string Folder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "Sift");
     public string Format { get; set; } = "FLAC";
+    public int BitrateKbps { get; set; } = 192;
     public Options Detection { get; set; } = new();
     public double Width { get; set; } = 680;
     public double Height { get; set; } = 860;
@@ -19,6 +20,10 @@ public sealed class Preferences
         {
             var p = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(Config)) ?? new();
             p.Detection.Validate();
+            if (!AudioOutput.Formats.Contains(p.Format))
+                p.Format = "FLAC";
+            if (!AudioOutput.Bitrates.Contains(p.BitrateKbps))
+                p.BitrateKbps = 192;
             return p;
         }
         catch { return new(); }

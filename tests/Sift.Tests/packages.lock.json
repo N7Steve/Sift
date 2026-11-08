@@ -18,6 +18,12 @@
           "Microsoft.TestPlatform.TestHost": "17.14.1"
         }
       },
+      "NVorbis": {
+        "type": "Direct",
+        "requested": "[0.10.5, )",
+        "resolved": "0.10.5",
+        "contentHash": "o+IptCG4Avze39HrGeztC+xIp6fOOwGVAwkoa1J++4Ji1WmZ+KIKlFl5wsgxsXqBkmdpfs/vFSUproiLKYa2bw=="
+      },
       "xunit": {
         "type": "Direct",
         "requested": "[2.9.3, )",
@@ -103,6 +109,11 @@
         "resolved": "13.0.3",
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
+      "OggVorbisSharp": {
+        "type": "Transitive",
+        "resolved": "1.0.1",
+        "contentHash": "KyYOvGtLFh7Pg4AcsnEgPf4cwRieWzOYT4FvzWK242cxIim50RpWBiI74ATXdd//KJEyuH39HyC9zv+pNSi1IA=="
+      },
       "System.Numerics.Tensors": {
         "type": "Transitive",
         "resolved": "9.0.0",
@@ -151,7 +162,8 @@
       "sift.core": {
         "type": "Project",
         "dependencies": {
-          "NAudio": "[3.3.0, )"
+          "NAudio": "[3.3.0, )",
+          "OggVorbisSharp": "[1.0.1, )"
         }
       }
     }

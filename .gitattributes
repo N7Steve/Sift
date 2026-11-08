@@ -2,3 +2,4 @@
 *.png binary
 *.ico binary
 tools/codec/** -text whitespace=-trailing-space,-blank-at-eof
+tools/vorbis/*.dll binary

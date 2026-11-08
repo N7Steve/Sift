@@ -9,5 +9,6 @@
     </PropertyGroup>
     <ItemGroup>
         <Content Include="$(MSBuildThisFileDirectory)tools/codec/**/*" Link="codec/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
+    <Content Include="$(MSBuildThisFileDirectory)tools/vorbis/*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
     </ItemGroup>
 </Project>

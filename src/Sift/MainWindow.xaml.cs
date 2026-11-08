@@ -30,7 +30,11 @@ public partial class MainWindow : Window
             Top = prefs.Top;
         }
         Folder.Text = prefs.Folder;
-        Format.SelectedIndex = prefs.Format == "WAV" ? 1 : 0;
+        Format.SelectedIndex = AudioOutput.Formats.ToList().IndexOf(prefs.Format);
+        Bitrate.ItemsSource = AudioOutput.Bitrates;
+        Bitrate.SelectedItem = prefs.BitrateKbps;
+        Format.SelectionChanged += (_, _) => UpdateEncodingControls();
+        UpdateEncodingControls();
         var o = prefs.Detection;
         Skip.IsChecked = o.SkipSilence;
         Trim.IsChecked = o.TrimEdges;
@@ -44,6 +48,18 @@ public partial class MainWindow : Window
         timer.Tick += Tick;
         timer.Start();
         Loaded += async (_, _) => await RefreshApps();
+    }
+    string SelectedFormat => ((ComboBoxItem)Format.SelectedItem).Content.ToString()!;
+    void UpdateEncodingControls()
+    {
+        BitrateRow.Visibility = AudioOutput.IsLossy(SelectedFormat) ? Visibility.Visible : Visibility.Collapsed;
+        BitrateLabel.Text = SelectedFormat == "OGG" ? "Bitrate medio objetivo" : "Bitrate (CBR)";
+        EncodingInfo.Text = SelectedFormat switch
+        {
+            "MP3" => "MP3 con pérdida · 48 kHz · estéreo · bitrate constante",
+            "OGG" => "OGG Vorbis con pérdida · 48 kHz · estéreo · bitrate medio objetivo",
+            _ => "PCM 24 bits · 48 kHz · estéreo · sin pérdida"
+        };
     }
     async Task RefreshApps()
     {
@@ -94,7 +110,7 @@ public partial class MainWindow : Window
             o.Validate();
             if (Folder.Text == Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "Sift"))
                 Directory.CreateDirectory(Folder.Text);
-            session = await Session.Start(app.Pid, o, Folder.Text, ((ComboBoxItem)Format.SelectedItem).Content.ToString()!);
+            session = await Session.Start(app.Pid, o, Folder.Text, SelectedFormat, (int)Bitrate.SelectedItem);
             Lock(true);
             SavedLabel.Text = "AUDIO GUARDADO ≈";
             Record.Content = "■  Detener";
@@ -175,7 +191,8 @@ public partial class MainWindow : Window
         try
         {
             prefs.Folder = Folder.Text;
-            prefs.Format = ((ComboBoxItem)Format.SelectedItem).Content.ToString()!;
+            prefs.Format = SelectedFormat;
+            prefs.BitrateKbps = (int)Bitrate.SelectedItem;
             prefs.Detection = ReadOptions();
             prefs.Detection.Validate();
             prefs.Width = RestoreBounds.Width;

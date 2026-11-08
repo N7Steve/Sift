@@ -9,3 +9,5 @@
 - UI text is Spanish, documentation English. Files UTF-8; when piping Python through Windows PowerShell set OutputEncoding to UTF8 (its default ASCII corrupts accented text).
 - No external services, telemetry, system changes or elevation. Do not alter other repositories. Do not overwrite completed recordings. Third-party binary changes require license, corresponding-source and provenance updates.
 - Before delivery build Release, run tests and real capture when an endpoint is available. Record pending hardware/DPI/soak checks in docs/validation.md. Do not label an unvalidated build stable.
+
+- MP3/OGG are lossy exports only: AudioOutput streams retained PCM intervals; do not change lossless capture bytes. MP3 uses Windows Media Foundation CBR with PCM16 conversion and a validated 100 ms minimum; OGG uses native Xiph Vorbis average bitrate with exact granules. Bitrates are 96/128/160/192/256/320 kbps. Rebuild native DLLs only via scripts/build-vorbis.ps1 and update provenance/licenses/checksums.

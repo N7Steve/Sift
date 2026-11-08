@@ -90,17 +90,25 @@
                             <ComboBox x:Name="Format" SelectedIndex="0">
                                 <ComboBoxItem Content="FLAC"/>
                                 <ComboBoxItem Content="WAV"/>
+                                <ComboBoxItem Content="MP3"/>
+                                <ComboBoxItem Content="OGG"/>
                             </ComboBox>
                             <ComboBox x:Name="Mode" Grid.Column="1" Margin="12,0,0,0" SelectedIndex="0">
                                 <ComboBoxItem Content="Archivo único"/>
                                 <ComboBoxItem Content="Archivos separados"/>
                             </ComboBox>
                         </Grid>
-                        <DockPanel Margin="0,12,0,0">
+                        <DockPanel x:Name="BitrateRow" Visibility="Collapsed" Margin="0,12,0,0">
+                            <TextBlock x:Name="BitrateLabel" Text="Bitrate" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                            <ComboBox x:Name="Bitrate" Width="140" HorizontalAlignment="Left" AutomationProperties.Name="Bitrate de salida" ToolTip="MP3: bitrate constante y mínimo 100 ms por archivo. OGG: bitrate medio objetivo, variable con el contenido.">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat={}{0} kbps}"/></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DockPanel>
+<DockPanel Margin="0,12,0,0">
                             <Button DockPanel.Dock="Right" Content="Examinar…" Click="BrowseClick" Margin="10,0,0,0"/>
                             <TextBox x:Name="Folder" AutomationProperties.Name="Carpeta de destino"/>
                         </DockPanel>
-                        <TextBlock Text="PCM 24 bits · 48 kHz · estéreo · sin efectos" FontSize="11" Foreground="#91A0B1" Margin="0,10,0,0"/>
+                        <TextBlock x:Name="EncodingInfo" Text="PCM 24 bits · 48 kHz · estéreo · sin efectos" FontSize="11" Foreground="#91A0B1" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource Card}">

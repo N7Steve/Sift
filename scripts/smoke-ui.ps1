@@ -1,4 +1,5 @@
-﻿# Interactive Windows test: plays a short tone and exercises the real WPF buttons.
+﻿param([ValidateSet("FLAC","WAV","MP3","OGG")][string]$Format="FLAC", [ValidateSet(96,128,160,192,256,320)][int]$Bitrate=192)
+# Interactive Windows test: plays a short tone and exercises the real WPF buttons.
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 Set-Location -LiteralPath $repo
@@ -11,10 +12,15 @@ public class SiftScreen {
  [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
 }
 "@
-$folder = Join-Path $repo 'artifacts/validation/ui'
+$folder = Join-Path $repo ('artifacts/validation/ui-' + $Format.ToLowerInvariant())
 New-Item -ItemType Directory -Force $folder | Out-Null
 $config = Join-Path $env:LOCALAPPDATA 'Sift/settings.json'
 $previous = if (Test-Path $config) { [IO.File]::ReadAllText($config) } else { $null }
+$settings = if ($previous) { $previous | ConvertFrom-Json } else { [PSCustomObject]@{ Format='FLAC'; Folder=$folder } }
+$settings.Format=$Format
+$settings | Add-Member -NotePropertyName BitrateKbps -NotePropertyValue $Bitrate -Force
+[IO.Directory]::CreateDirectory((Split-Path $config)) | Out-Null
+[IO.File]::WriteAllText($config,($settings | ConvertTo-Json -Depth 10))
 $tone = Start-Process dotnet -ArgumentList 'tests/Sift.Probe/bin/Release/net10.0-windows10.0.22000.0/Sift.Probe.dll tone 440' -WindowStyle Hidden -PassThru
 $app = Start-Process (Join-Path $repo 'artifacts/Sift-win-x64/Sift.exe') -WindowStyle Hidden -PassThru
 try {
@@ -46,7 +52,8 @@ try {
     (Find 'Record').GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
     Start-Sleep -Seconds 2
     if ((Find 'Message').Current.Name -ne 'Grabación guardada.') { throw ('UI finalization failed: ' + (Find 'Message').Current.Name) }
-    if (-not (Get-ChildItem $folder -Filter '*.flac')) { throw 'No FLAC output from UI.' }
+    if (-not (Get-ChildItem $folder -Filter ('*.' + $Format.ToLowerInvariant()))) { throw 'No output from UI.' }
+    if ($Format -in @('MP3','OGG') -and $null -eq (Find 'Bitrate')) { throw 'Bitrate selector is missing.' }
     $rect = New-Object SiftScreen+Rect
     [SiftScreen]::GetWindowRect($app.MainWindowHandle,[ref]$rect) | Out-Null
     $bitmap = New-Object Drawing.Bitmap(($rect.R-$rect.L),($rect.B-$rect.T))
@@ -56,7 +63,7 @@ try {
     $graphics.ReleaseHdc($dc)
     $bitmap.Save((Join-Path $repo 'artifacts/validation/ui.png'))
     $graphics.Dispose(); $bitmap.Dispose()
-    Write-Host 'PASS portable launch, discovery, source selection, Grabar, meter/activity, Detener, FLAC result.'
+    Write-Host "PASS portable UI: $Format at $Bitrate kbps, capture and finalized output."
 } finally {
     if (-not $app.HasExited) { $app.CloseMainWindow() | Out-Null; $app.WaitForExit(15000) | Out-Null }
     if (-not $tone.HasExited) { $tone.Kill() }

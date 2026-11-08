@@ -2,7 +2,7 @@
 
 Lightweight native Windows application for per-application audio recording, silence removal and audio segmentation. Spanish interface. Local processing only.
 
-**0.1 preview** — functional process-loopback recording, not yet a stable release. See [validation](docs/validation.md) for executed checks and remaining hardware/soak tests.
+**0.2 preview** — functional process-loopback recording, not yet a stable release. See [validation](docs/validation.md) for executed checks and remaining hardware/soak tests.
 
 ![Sift running on Windows 11](docs/screenshot.png)
 
@@ -10,7 +10,7 @@ Lightweight native Windows application for per-application audio recording, sile
 
 - Select running applications by real icon, friendly name and window context; refresh on demand. Audio activity is a snapshot at refresh time.
 - WASAPI process loopback includes the selected process and its children. Never records a microphone or falls back to system audio.
-- FLAC by default, or PCM WAV with RF64 for large files. No normalization, effects, crossfades or automatic gain changes.
+- FLAC by default, PCM WAV with RF64 for large files, MP3 or OGG Vorbis with selectable bitrate. No normalization, effects, crossfades or automatic gain changes.
 - Optional internal silence removal, independent edge trim, conservative optional brief-edge event removal.
 - One concatenated file or separate activity sequences. RMS/hysteresis detection, configurable pre/post-roll and silence timeout.
 - Live level, session time, estimated retained duration, finalized duration/size, playback and open-folder actions.
@@ -19,14 +19,14 @@ Lightweight native Windows application for per-application audio recording, sile
 
 ## Requirements and installation
 
-Windows 11 x64, ordinary user account and a working Windows audio service. Extract the **entire** `Sift-win-x64.zip` and run `Sift.exe`. No installer, administrator rights, Visual Studio or separately installed .NET runtime is required for the portable build. Keep the `codec` folder beside the executable. Unsigned preview builds can show Windows reputation prompts.
+Windows 11 x64, ordinary user account and a working Windows audio service. Extract the **entire** `Sift-win-x64.zip` and run `Sift.exe`. No installer, administrator rights, Visual Studio or separately installed .NET runtime is required for the portable build. Keep all DLLs and the `codec` folder beside the executable. Unsigned preview builds can show Windows reputation prompts.
 
 No stable GitHub release is published yet. Build locally or download a Windows CI artifact when available.
 
 ## Use
 
 1. Select the application that produces the sound. Refresh if it opened after Sift.
-2. Choose FLAC/WAV, destination and single-file/separate-file mode.
+2. Choose FLAC/WAV/MP3/OGG, destination and single-file/separate-file mode.
 3. Choose silence and edge options; advanced detection values are hidden by default.
 4. Press **Grabar**. Waiting for sound still means capture is running.
 5. Press **Detener**. Sift finalizes the audio off the UI thread, then offers playback and the destination folder.
@@ -37,7 +37,9 @@ The session timer measures wall time; retained duration during capture is an est
 
 Sift explicitly requests **48,000 Hz, signed 24-bit PCM, stereo** from Windows process loopback, checks the returned format and writes those bytes unchanged. Windows may resample/remix/quantize source streams to this capture format. These settings describe the capture stream, not the original application's source quality or the physical output device mix format. FLAC is verified lossless relative to the PCM supplied to its encoder. No artificial quality claim is made about source bit depth.
 
-WAV uses RIFF with a reserved header chunk, switching to RF64 beyond the traditional 4 GiB limit. Player RF64 support varies. No MP3 or source-native multichannel/automatic format negotiation in this version.
+MP3 and OGG are **lossy** exports. Both offer 96, 128, 160, 192 (default), 256 and 320 kbps; the choice is remembered. MP3 uses Windows Media Foundation at constant bitrate (CBR); PCM24 is converted to PCM16 only for this encoder. Windows N editions without Media Foundation can use OGG/FLAC/WAV instead. MP3 may expose codec delay/padding in players (no guarantee of gapless MP3 duration). For compatible playback MP3 exports require at least 100 ms of retained audio per file; shorter exports report an error and preserve the recoverable PCM rather than adding silence. OGG/WAV/FLAC support shorter sounds. OGG uses Xiph libvorbis with a nominal average bitrate target; actual bitrate varies with content, especially for short or simple sounds. Ogg granule positions preserve exact retained duration. Lossless formats have no bitrate setting. The capture and silence-processing pipeline remain PCM24 in all modes.
+
+WAV uses RIFF with a reserved header chunk, switching to RF64 beyond the traditional 4 GiB limit. Player RF64 support varies. No source-native multichannel/automatic format negotiation in this version.
 
 ## Build and development
 
@@ -63,13 +65,13 @@ This test requires an interactive Windows audio environment; CI only runs determ
 
 ## Recovery and disk usage
 
-Capture first spools `.sift-pcm` plus a `.json` format/options sidecar **in the selected destination**, then exports on stop. Full untrimmed audio temporarily consumes about 1.04 GB/hour; finalization additionally needs room for WAV and FLAC. No quota or free-space reservation is imposed. Disk errors preserve the temporary files; do not delete them until recovery succeeds.
+Capture first spools `.sift-pcm` plus a `.json` format/options/bitrate sidecar **in the selected destination**, then exports on stop. Full untrimmed audio temporarily consumes about 1.04 GB/hour; finalization additionally needs room for WAV and FLAC. No quota or free-space reservation is imposed. Disk errors preserve the temporary files; do not delete them until recovery succeeds.
 
 ```powershell
 ./scripts/recover.ps1 -Pcm 'D:/Recordings/file.sift-pcm' -Output 'D:/Recordings/recovered.wav'
 ```
 
-Recovery keeps every complete PCM frame without trimming and never modifies the source. It requires the development SDK; an integrated recovery UI is not included yet. A power failure can lose buffered filesystem data. Final outputs are never overwritten; names include a timestamp and random suffix. Completed files and failed recovery data are not automatically deleted. Successful temporary spools are removed only after all requested exports complete.
+Recovery keeps every complete PCM frame without trimming and never modifies the source. It requires the development SDK; an integrated recovery UI is not included yet. For MP3/OGG, retained PCM intervals stream directly to the encoder without an extra WAV. A power failure can lose buffered filesystem data. Final outputs are never overwritten; names include a timestamp and random suffix. Completed files and failed recovery data are not automatically deleted. Successful temporary spools are removed only after all requested exports complete.
 
 ## Known limits
 
@@ -79,11 +81,11 @@ Recovery keeps every complete PCM frame without trimming and never modifies the 
 - Changing devices is not actively managed: process loopback is endpoint independent, but driver/audio-service errors end capture with recovery data preserved.
 - Silence analysis has 10 ms resolution. Thresholds need adjustment for unusually quiet material. No algorithm can reliably distinguish a short legitimate effect from an unwanted click.
 - Segments are exported when stopping, not delivered incrementally. Closing while recording finalizes before exiting; closing during finalization waits. Hard termination requires manual recovery.
-- Hours-long sessions, disk-full hardware tests, RF64 playback above 4 GiB, device hotplug and varied DPI/accessibility configurations remain pending. Only a dark theme and the last result are included; no pause, recent-history browser or MP3.
+- Hours-long sessions, disk-full hardware tests, RF64 playback above 4 GiB, device hotplug and varied DPI/accessibility configurations remain pending. Only a dark theme and the last result are included; no pause or recent-history browser.
 
 ## Architecture and privacy
 
-C#/.NET 10, WPF, NAudio 3.3.0, official FLAC 1.5.0 command-line encoder, xUnit. [Architecture and decisions](docs/architecture.md).
+C#/.NET 10, WPF, NAudio 3.3.0, official FLAC 1.5.0 command-line encoder, Windows MP3 encoder, Xiph libogg/libvorbis via OggVorbisSharp, xUnit. [Architecture and decisions](docs/architecture.md).
 
 No network calls, accounts, telemetry, DLL injection, virtual devices, registry edits or system volume/device changes. Development package restoration and GitHub CI use the network; the installed application does not.
 

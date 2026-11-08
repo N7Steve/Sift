@@ -20,7 +20,7 @@ static class HardwareValidation
         try
         {
             await Task.Delay(700);
-            foreach (var format in new[] { "WAV", "FLAC", "WAV" })
+            foreach (var format in new[] { "WAV", "FLAC", "MP3", "OGG" })
             {
                 await using var session = await Session.Start(selected.Id, new()
                 {

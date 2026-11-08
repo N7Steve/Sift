@@ -46,6 +46,11 @@
           "NAudio.Midi": "3.3.0"
         }
       },
+      "OggVorbisSharp": {
+        "type": "Transitive",
+        "resolved": "1.0.1",
+        "contentHash": "KyYOvGtLFh7Pg4AcsnEgPf4cwRieWzOYT4FvzWK242cxIim50RpWBiI74ATXdd//KJEyuH39HyC9zv+pNSi1IA=="
+      },
       "System.Numerics.Tensors": {
         "type": "Transitive",
         "resolved": "9.0.0",
@@ -54,7 +59,8 @@
       "sift.core": {
         "type": "Project",
         "dependencies": {
-          "NAudio": "[3.3.0, )"
+          "NAudio": "[3.3.0, )",
+          "OggVorbisSharp": "[1.0.1, )"
         }
       }
     }

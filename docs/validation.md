@@ -31,3 +31,12 @@ Reproduce using `scripts/test.ps1`, `scripts/validate-audio.ps1` and (interactiv
 - [ ] Listening tests with very quiet speech/music/effects to tune detection. Defaults intentionally preserve brief sounds; optional brief-edge filtering may remove legitimate effects.
 
 No stable release tag is issued. Fixed PCM24 48k stereo is an explicit compatibility decision; automatic source-native capture is not implemented. No all-hardware or hours-long reliability claim.
+
+## 0.2 format extension
+
+- 46 automated cases pass, including all six bitrates (96/128/160/192/256/320 kbps) for both MP3 and OGG on this Windows machine.
+- Every MP3 frame declares the selected CBR and 48 kHz. Windows decodes every output; expected codec padding is bounded by four 1152-sample stereo frames. Every OGG output decodes with independent NVorbis to exactly 48,000 stereo frames for one second of retained audio, including a join between two source intervals. Its nominal bitrate header matches the selected target.
+- Decoded content is finite, has expected energy and the retained tone; deliberately omitted audio is excluded. Unicode paths, exclusive creation and invalid bitrates are tested. Existing WAV/FLAC byte-exact roundtrip tests still pass.
+- Original hardware/DPI/soak test items above remain pending. Windows N without Media Foundation is not available here for testing; MP3 reports an error instead of substituting a different bitrate/format.
+- Real process-loopback sessions finalized MP3 and OGG successfully. Portable UI Automation also exercised MP3 at 320 kbps and OGG at 128 kbps through Grabar/Detener, with finalized files and visible bitrate selection. Test scripts restore previous user settings.
+- Very short OGG (10 ms) decodes to the exact frame count. MP3 shorter than 100 ms is rejected before output creation, preserving PCM; the 100 ms boundary decodes at all six bitrates. No silence is automatically appended to make short MP3s playable.
